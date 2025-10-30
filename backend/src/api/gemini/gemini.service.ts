@@ -5,14 +5,15 @@ import {
 	GoogleGenerativeAI,
 	Part
 } from '@google/generative-ai'
-import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
 import { ContentBlock } from './interfaces/content.interface'
 
 @Injectable()
 export class GeminiService {
-	private readonly MODEL: GenerativeModel
+	private readonly JSON_MODEL: GenerativeModel
+	private readonly TEXT_ONLY_MODEL: GenerativeModel
 
 	private readonly GEMINI_API_KEY: string
 	private readonly GEMINI_MODEL: string
@@ -27,14 +28,19 @@ export class GeminiService {
 
 		const GOOGLE_AI = new GoogleGenerativeAI(this.GEMINI_API_KEY)
 
-		const generationConfig: GenerationConfig = {
+		const jsonGenerationConfig: GenerationConfig = {
 			responseMimeType: 'application/json'
 		}
 
-		this.MODEL = GOOGLE_AI.getGenerativeModel({
+		this.JSON_MODEL = GOOGLE_AI.getGenerativeModel({
 			model: this.GEMINI_MODEL,
 			systemInstruction: this.SYSTEM_PROMPT,
-			generationConfig: generationConfig
+			generationConfig: jsonGenerationConfig
+		})
+
+		this.TEXT_ONLY_MODEL = GOOGLE_AI.getGenerativeModel({
+			model: this.GEMINI_MODEL,
+			systemInstruction: this.SYSTEM_PROMPT
 		})
 	}
 
@@ -43,21 +49,29 @@ export class GeminiService {
 		parts: Part[]
 	): Promise<ContentBlock[]> {
 		try {
-			const chat = this.MODEL.startChat({ history })
+			const chat = this.JSON_MODEL.startChat({ history })
 			const result = await chat.sendMessage(parts)
 			const responseText = result.response.text()
-
 			const parsedResponse = JSON.parse(responseText)
-
 			return parsedResponse
 		} catch (error) {
-			if (error instanceof SyntaxError) {
-				this.logger.error('Ошибка парсинга JSON от Gemini!', error)
-			}
-			this.logger.error('Ошибка при генерации ответа от Gemini >>', error)
+			this.logger.error('Ошибка при генерации JSON от Gemini >>', error)
 			throw new Error(
-				'Ошибка при генерации или парсинге ответа от Gemini'
+				'Ошибка при генерации или парсинге JSON ответа от Gemini'
 			)
+		}
+	}
+
+	async generateSimpleText(prompt: string): Promise<string> {
+		try {
+			const result = await this.TEXT_ONLY_MODEL.generateContent(prompt)
+			return result.response.text()
+		} catch (error) {
+			this.logger.error(
+				'Ошибка при генерации простого текста от Gemini >>',
+				error
+			)
+			throw new Error('Ошибка при генерации ответа от Gemini')
 		}
 	}
 }

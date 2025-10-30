@@ -6,6 +6,7 @@ import {
 	Logger,
 	NotFoundException
 } from '@nestjs/common'
+import { ChatSession } from '@prisma/client'
 import { path as rootPath } from 'app-root-path'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -58,13 +59,15 @@ export class ChatService {
 		dto: CreateMessageDto,
 		files?: Express.Multer.File[]
 	) {
-		await this.validateSessionAccess(userId, sessionId)
+		const session = await this.validateSessionAccess(userId, sessionId)
 
 		const { prompt } = dto
 
 		if (!prompt && (!files || files.length === 0)) {
 			throw new BadRequestException('Требуется файл или промпт')
 		}
+
+		const isFirstMessage = session.title === 'Новый чат'
 
 		let savedFiles: { url: string; name: string }[] = []
 
@@ -130,6 +133,14 @@ export class ChatService {
 			})
 		])
 
+		if (isFirstMessage && prompt) {
+			this.generateAndSaveChatTitle(sessionId, prompt).catch(err => {
+				this.logger.error(
+					`Failed to generate title for session ${sessionId}: ${err.message}`
+				)
+			})
+		}
+
 		return {
 			...modelMessage,
 			content: aiResponseObject
@@ -157,7 +168,37 @@ export class ChatService {
 		return { message: 'Чат успешно удален' }
 	}
 
-	private async validateSessionAccess(userId: string, sessionId: string) {
+	private async generateAndSaveChatTitle(
+		sessionId: string,
+		firstPrompt: string
+	) {
+		this.logger.log(`Generating title for chat session: ${sessionId}`)
+
+		const titlePrompt = `Сгенерируй короткий заголовок (максимум 5 слов) для чата, который начинается с этого сообщения: "${firstPrompt}". В ответе верни только сам заголовок без кавычек и лишних слов.`
+
+		const generatedTitle = await this.gemini.generateSimpleText(titlePrompt)
+
+		if (generatedTitle && typeof generatedTitle === 'string') {
+			const cleanedTitle = generatedTitle.trim().replace(/"/g, '')
+
+			await this.prismaService.chatSession.update({
+				where: { id: sessionId },
+				data: { title: cleanedTitle }
+			})
+			this.logger.log(
+				`Successfully generated and saved title for chat ${sessionId}: "${cleanedTitle}"`
+			)
+		} else {
+			this.logger.warn(
+				`Could not generate a valid title for ${sessionId}`
+			)
+		}
+	}
+
+	private async validateSessionAccess(
+		userId: string,
+		sessionId: string
+	): Promise<ChatSession> {
 		const session = await this.prismaService.chatSession.findUnique({
 			where: { id: sessionId }
 		})
@@ -168,5 +209,6 @@ export class ChatService {
 		if (session.userId !== userId) {
 			throw new ForbiddenException('Доступ запрещен')
 		}
+		return session
 	}
 }
