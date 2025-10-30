@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react'
 
 import { AppSidebar } from '@/components/chat/app-sidebar'
-import { SidebarProvider } from '@/components/ui/sidebar'
 import { ThemeButton } from '@/components/ui/custom/theme-button'
+import { SidebarProvider } from '@/components/ui/sidebar'
 
 export default function ChatLayout({ children }: PropsWithChildren) {
 	return (
@@ -10,6 +10,7 @@ export default function ChatLayout({ children }: PropsWithChildren) {
 			<div className='relative flex h-screen w-screen overflow-hidden'>
 				<video
 					src='/videos/auth-bg-light-video.mp4'
+					poster='/images/auth-bg-light-poster.png'
 					autoPlay
 					loop
 					muted
@@ -19,6 +20,7 @@ export default function ChatLayout({ children }: PropsWithChildren) {
 
 				<video
 					src='/videos/auth-bg-dark-video.mp4'
+					poster='/images/auth-bg-dark-poster.png'
 					autoPlay
 					loop
 					muted
