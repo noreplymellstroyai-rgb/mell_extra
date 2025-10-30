@@ -15,6 +15,7 @@ import { FileService } from '../file/file.service'
 import { GeminiService } from '../gemini/gemini.service'
 
 import { CreateMessageDto } from './dto/create-message.dto'
+import { RenameChatDto } from './dto/rename-chat.dto'
 
 @Injectable()
 export class ChatService {
@@ -133,6 +134,27 @@ export class ChatService {
 			...modelMessage,
 			content: aiResponseObject
 		}
+	}
+
+	async renameChat(userId: string, sessionId: string, dto: RenameChatDto) {
+		await this.validateSessionAccess(userId, sessionId)
+
+		return this.prismaService.chatSession.update({
+			where: { id: sessionId },
+			data: {
+				title: dto.title
+			}
+		})
+	}
+
+	async deleteChat(userId: string, sessionId: string) {
+		await this.validateSessionAccess(userId, sessionId)
+
+		await this.prismaService.chatSession.delete({
+			where: { id: sessionId }
+		})
+
+		return { message: 'Чат успешно удален' }
 	}
 
 	private async validateSessionAccess(userId: string, sessionId: string) {

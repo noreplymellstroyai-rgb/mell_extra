@@ -1,8 +1,12 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
+	HttpCode,
+	HttpStatus,
 	Param,
+	Patch,
 	Post,
 	UploadedFiles,
 	UseInterceptors
@@ -12,6 +16,7 @@ import { Authorized, Protected } from 'src/common/decorators'
 
 import { ChatService } from './chat.service'
 import { CreateMessageDto } from './dto/create-message.dto'
+import { RenameChatDto } from './dto/rename-chat.dto'
 
 @Controller('chat')
 export class ChatController {
@@ -48,5 +53,25 @@ export class ChatController {
 		@UploadedFiles() files: Express.Multer.File[]
 	) {
 		return this.chatService.sendPrompt(userId, sessionId, dto, files)
+	}
+
+	@Protected()
+	@Patch(':sessionId/rename')
+	renameChat(
+		@Authorized('id') userId: string,
+		@Param('sessionId') sessionId: string,
+		@Body() dto: RenameChatDto
+	) {
+		return this.chatService.renameChat(userId, sessionId, dto)
+	}
+
+	@Protected()
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@Delete(':sessionId')
+	deleteChat(
+		@Authorized('id') userId: string,
+		@Param('sessionId') sessionId: string
+	) {
+		return this.chatService.deleteChat(userId, sessionId)
 	}
 }
