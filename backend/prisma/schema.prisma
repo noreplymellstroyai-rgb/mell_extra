@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URI")
+}
+
+model User {
+  id String @id @default(cuid())
+
+  username String?
+  email    String  @unique
+  password String?
+  picture  String? @default("/uploads/no-user-image.png")
+
+  verificationCodeExpiresAt DateTime? @map("verification_code_expires_at")
+  isVerified                Boolean   @default(false) @map("is_verified")
+  verificationCode          String?   @map("verification_code")
+
+  currentRequestEmail Int?      @default(0) @map("current_request_email")
+  lastRequestAt       DateTime? @default(now()) @map("last_request_at")
+
+  chatSessions ChatSession[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model ChatSession {
+  id String @id @default(cuid())
+
+  title String @default("Новый чат")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+
+  messages ChatMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt])
+  @@map("chat_session")
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+
+  content String?
+  role    String
+
+  attachmentUrls String[] @map("attachment_urls")
+
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  chatSessionId String      @map("chat_session_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([chatSessionId, createdAt])
+  @@map("chat_message")
+}

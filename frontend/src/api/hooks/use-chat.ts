@@ -1,0 +1,139 @@
+import {
+	UseMutationOptions,
+	type UseQueryOptions,
+	useMutation,
+	useQuery,
+	useQueryClient
+} from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+
+import { chatKeys, createUserMessage } from '@/lib/utils'
+
+import {
+	createNewChat,
+	getAllChats,
+	getHistoryChat,
+	sendPrompt
+} from '../requests'
+import { CreateMessageDto, IChat, IMessage } from '../types'
+
+type SendPromptVariables = { sessionId: string } & CreateMessageDto
+type CreateNewChatVariables = { prompt: string; files?: File[] }
+
+export function useGetAllChatsQuery(
+	options?: Omit<UseQueryOptions<IChat[], Error>, 'queryKey' | 'queryFn'>
+) {
+	return useQuery({
+		queryKey: ['getAllChats'],
+		queryFn: () => getAllChats(),
+		...options
+	})
+}
+
+export function useGetHistoryChatQuery(
+	sessionId: string,
+	options?: Omit<UseQueryOptions<IMessage[], Error>, 'queryKey' | 'queryFn'>
+) {
+	return useQuery({
+		queryKey: ['getHistoryChat', sessionId],
+		queryFn: () => getHistoryChat(sessionId),
+		...options
+	})
+}
+
+export function useSendPromptMutation() {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (variables: SendPromptVariables) => sendPrompt(variables),
+
+		onMutate: async (variables: SendPromptVariables) => {
+			const { sessionId, prompt, files } = variables
+			const queryKey = chatKeys.history(sessionId)
+
+			await queryClient.cancelQueries({ queryKey })
+
+			const previousMessages =
+				queryClient.getQueryData<IMessage[]>(queryKey)
+
+			const userMessage = createUserMessage(prompt)
+
+			if (files && files.length > 0) {
+				userMessage.attachmentUrls = files.map(file =>
+					URL.createObjectURL(file)
+				)
+			}
+
+			queryClient.setQueryData<IMessage[]>(queryKey, oldData => [
+				...(oldData || []),
+				userMessage
+			])
+
+			return { previousMessages }
+		},
+
+		onError: (err, variables, context) => {
+			const queryKey = chatKeys.history(variables.sessionId)
+			if (context?.previousMessages) {
+				queryClient.setQueryData(queryKey, context.previousMessages)
+			}
+			console.error('Ошибка при отправке промпта:', err)
+		},
+
+		onSettled: (data, error, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: chatKeys.history(variables.sessionId)
+			})
+		}
+	})
+}
+
+export function useSendNewChatPromptMutation(
+	options?: UseMutationOptions<IChat, Error, CreateNewChatVariables>
+) {
+	const queryClient = useQueryClient()
+	const router = useRouter()
+
+	return useMutation({
+		mutationFn: (variables: CreateNewChatVariables) =>
+			createNewChat(variables),
+
+		onSuccess: async (newChat, variables) => {
+			await queryClient.invalidateQueries({ queryKey: chatKeys.all })
+
+			const userMessage = createUserMessage(variables.prompt)
+			if (variables.files && variables.files.length > 0) {
+				userMessage.attachmentUrls = variables.files.map(file =>
+					URL.createObjectURL(file)
+				)
+			}
+
+			const newChatHistoryKey = chatKeys.history(newChat.id)
+			queryClient.setQueryData(newChatHistoryKey, [userMessage])
+
+			router.push(`/chat/${newChat.id}`)
+
+			try {
+				await sendPrompt({
+					sessionId: newChat.id,
+					prompt: variables.prompt,
+					files: variables.files
+				})
+
+				await queryClient.invalidateQueries({
+					queryKey: newChatHistoryKey
+				})
+			} catch (error) {
+				console.error(
+					'Чат создан, но не удалось отправить первое сообщение для генерации ответа:',
+					error
+				)
+			}
+		},
+
+		onError: error => {
+			console.error('Ошибка при создании нового чата:', error)
+		},
+		...options
+	})
+}
