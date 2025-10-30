@@ -1,5 +1,5 @@
 import { api } from '../instance'
-import { CreateMessageDto, IChat, IMessage } from '../types'
+import { CreateMessageDto, IChat, IMessage, RenameChatPayload } from '../types'
 
 export const createNewChat = async (data: {
 	prompt: string
@@ -50,4 +50,24 @@ export const sendPrompt = async ({
 	}
 
 	return res.data
+}
+
+interface RenameChatParams {
+	sessionId: string
+	payload: RenameChatPayload
+}
+
+export const renameChatRequest = async ({
+	sessionId,
+	payload
+}: RenameChatParams): Promise<IChat> => {
+	const response = await api.patch<IChat>(
+		`/chat/${sessionId}/rename`,
+		payload
+	)
+	return response.data
+}
+
+export const deleteChatRequest = async (sessionId: string): Promise<void> => {
+	await api.delete(`/chat/${sessionId}`)
 }

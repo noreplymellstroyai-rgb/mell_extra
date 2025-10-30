@@ -45,7 +45,7 @@ export default function SessionChat({ sessionId }: { sessionId: string }) {
 								<div
 									className={`rounded-lg py-2 ${
 										message.role === 'user'
-											? 'bg-foreground/5 px-4 max-w-xl'
+											? 'bg-foreground/5 max-w-xl px-4'
 											: 'bg-transparent px-1'
 									}`}
 								>

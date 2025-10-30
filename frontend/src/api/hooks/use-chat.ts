@@ -5,26 +5,29 @@ import {
 	useQuery,
 	useQueryClient
 } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 import { chatKeys, createUserMessage } from '@/lib/utils'
 
 import {
 	createNewChat,
+	deleteChatRequest,
 	getAllChats,
 	getHistoryChat,
+	renameChatRequest,
 	sendPrompt
 } from '../requests'
-import { CreateMessageDto, IChat, IMessage } from '../types'
+import { CreateMessageDto, IChat, IMessage, RenameChatPayload } from '../types'
 
 type SendPromptVariables = { sessionId: string } & CreateMessageDto
 type CreateNewChatVariables = { prompt: string; files?: File[] }
+type RenameChatVariables = { sessionId: string; payload: RenameChatPayload }
 
 export function useGetAllChatsQuery(
 	options?: Omit<UseQueryOptions<IChat[], Error>, 'queryKey' | 'queryFn'>
 ) {
 	return useQuery({
-		queryKey: ['getAllChats'],
+		queryKey: chatKeys.all,
 		queryFn: () => getAllChats(),
 		...options
 	})
@@ -135,5 +138,44 @@ export function useSendNewChatPromptMutation(
 			console.error('Ошибка при создании нового чата:', error)
 		},
 		...options
+	})
+}
+
+export const useRenameChatMutation = () => {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (variables: RenameChatVariables) =>
+			renameChatRequest(variables),
+
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: chatKeys.all })
+		},
+
+		onError: error => {
+			console.error('Ошибка при переименовании чата:', error)
+		}
+	})
+}
+
+export function useDeleteChatMutation() {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: (sessionId: string) => deleteChatRequest(sessionId),
+
+		onSuccess: (data, deletedSessionId) => {
+			console.log('Чат удален. Инвалидируем кэш...')
+
+			queryClient.invalidateQueries({ queryKey: chatKeys.all })
+
+			queryClient.removeQueries({
+				queryKey: chatKeys.history(deletedSessionId)
+			})
+		},
+
+		onError: error => {
+			console.error('Ошибка при удалении чата:', error)
+		}
 	})
 }

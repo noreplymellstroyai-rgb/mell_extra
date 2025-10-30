@@ -17,3 +17,7 @@ export interface IMessage {
 	attachmentUrls?: string[]
 	createdAt: string
 }
+
+export interface RenameChatPayload {
+	title: string
+}
