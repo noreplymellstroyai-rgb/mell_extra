@@ -1,17 +1,20 @@
 'use client'
 
-import { ArrowUp, Paperclip, X } from 'lucide-react'
-import Image from 'next/image'
-import { ChangeEvent, KeyboardEventHandler, useRef, useState } from 'react'
+import { ArrowUp, Paperclip } from 'lucide-react'
+import { ChangeEvent, ClipboardEventHandler, useRef } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+
+import { useChatAttachments } from '@/hooks/chat/use-chat-attachments'
+import { useFileDragAndDrop } from '@/hooks/chat/use-file-drag-and-drop'
+
+import { ChatAttachmentPreview } from './chat-attachment-preview'
 
 interface ChatInputFormProps {
 	prompt: string
 	setPrompt: (value: string) => void
 	handleSendPrompt: (prompt: string, files?: File[]) => void
-	handleKeyPress: KeyboardEventHandler<HTMLTextAreaElement>
 	isLoading?: boolean
 }
 
@@ -19,93 +22,75 @@ export function ChatInputForm({
 	prompt,
 	setPrompt,
 	handleSendPrompt,
-	handleKeyPress,
 	isLoading = false
 }: ChatInputFormProps) {
-	const [files, setFiles] = useState<File[]>([])
-	const [previewUrls, setPreviewUrls] = useState<string[]>([])
+	const {
+		files,
+		previewUrls,
+		fileError,
+		handleFilesAdded,
+		removeFile,
+		removeAllFiles,
+		isAttachmentAreaVisible
+	} = useChatAttachments()
+
+	const { isDragging, dragAndDropProps } = useFileDragAndDrop({
+		onFilesDropped: handleFilesAdded
+	})
+
 	const fileInputRef = useRef<HTMLInputElement>(null)
-	const [fileError, setFileError] = useState<string | null>(null)
 
 	const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-		setFileError(null)
-		const selectedFiles = event.target.files
-		if (!selectedFiles) return
-
-		const newFiles = Array.from(selectedFiles)
-
-		if (files.length + newFiles.length > 5) {
-			setFileError('Можно прикрепить не более 5 файлов')
-			if (fileInputRef.current) fileInputRef.current.value = ''
-			return
-		}
-
-		const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
-		for (const file of newFiles) {
-			if (!allowedTypes.includes(file.type)) {
-				setFileError('Поддерживаются только форматы JPEG, JPG и PNG')
-				if (fileInputRef.current) fileInputRef.current.value = ''
-				return
-			}
-		}
-
-		setFiles(prev => [...prev, ...newFiles])
-		const newUrls = newFiles.map(file => URL.createObjectURL(file))
-		setPreviewUrls(prev => [...prev, ...newUrls])
-
+		handleFilesAdded(event.target.files)
 		if (fileInputRef.current) fileInputRef.current.value = ''
 	}
 
-	const handleRemoveFile = (indexToRemove: number) => {
-		URL.revokeObjectURL(previewUrls[indexToRemove])
-		setFiles(prev => prev.filter((_, index) => index !== indexToRemove))
-		setPreviewUrls(prev =>
-			prev.filter((_, index) => index !== indexToRemove)
-		)
-		if (files.length - 1 < 5) setFileError(null)
-	}
-
-	const handleRemoveAllFiles = () => {
-		previewUrls.forEach(url => URL.revokeObjectURL(url))
-		setFiles([])
-		setPreviewUrls([])
-		setFileError(null)
+	const handlePaste: ClipboardEventHandler<HTMLTextAreaElement> = e => {
+		if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+			e.preventDefault()
+			handleFilesAdded(e.clipboardData.files)
+		}
 	}
 
 	const onSend = () => {
-		if (fileError) return
+		if (fileError || isLoading) return
 		handleSendPrompt(prompt, files)
 		setPrompt('')
-		handleRemoveAllFiles()
+		removeAllFiles()
 	}
 
 	return (
-		<div className='border-foreground/20 bg-background/20 relative rounded-2xl border px-5 py-4 shadow-lg backdrop-blur-xl'>
-			{previewUrls.length > 0 && (
+		<div
+			className={`bg-background relative rounded-2xl border px-5 py-4 shadow-lg backdrop-blur-xl transition-all ${
+				isDragging
+					? 'border-primary border-dashed'
+					: 'border-foreground/20'
+			}`}
+			{...dragAndDropProps}
+		>
+			{isDragging && (
+				<div className='bg-background/70 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl'>
+					<p className='text-primary font-semibold'>
+						Перетащите файлы сюда
+					</p>
+				</div>
+			)}
+
+			{isAttachmentAreaVisible && (
 				<div className='mb-2 flex flex-wrap gap-2'>
 					{previewUrls.map((url, index) => (
-						<div key={url} className='relative h-20 w-20'>
-							<Image
-								src={url}
-								alt={`Preview ${index}`}
-								fill
-								className='rounded-md object-cover'
-							/>
-							<Button
-								variant='ghost'
-								size='icon'
-								className='bg-background text-foreground absolute -top-2 -right-2 h-6 w-6 rounded-full'
-								onClick={() => handleRemoveFile(index)}
-							>
-								<X className='h-4 w-4' />
-							</Button>
-						</div>
+						<ChatAttachmentPreview
+							key={url}
+							url={url}
+							onRemove={() => removeFile(index)}
+						/>
 					))}
 				</div>
 			)}
+
 			<div>
 				<Textarea
-					placeholder='Спросите что-нибудь...'
+					placeholder='Спросите что-нибудь или перетащите/вставьте изображение...'
 					className='max-h-52 w-full resize-none border-none bg-transparent pr-2 focus:ring-0 focus-visible:ring-0'
 					rows={1}
 					value={prompt}
@@ -116,6 +101,7 @@ export function ChatInputForm({
 							onSend()
 						}
 					}}
+					onPaste={handlePaste}
 					disabled={isLoading}
 				/>
 			</div>
