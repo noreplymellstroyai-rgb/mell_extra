@@ -132,6 +132,12 @@ export function useSendNewChatPromptMutation(
 					error
 				)
 			}
+			setTimeout(() => {
+				console.log(
+					'Отложенная инвалидация списка чатов для получения AI-заголовка...'
+				)
+				queryClient.invalidateQueries({ queryKey: chatKeys.all })
+			}, 8000)
 		},
 
 		onError: error => {
