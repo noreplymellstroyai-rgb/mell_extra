@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-
 import { useGetHistoryChatQuery, useSendPromptMutation } from '@/api/hooks'
 
+import { AiResponseRenderer } from '@/components/chat/ai-response-renderer'
+
+import { useAutoScroll } from '@/hooks/chat/use-auto-scroll'
 import { usePrompt } from '@/hooks/chat/use-set-prompt'
+
+import { parseAiContent } from '@/lib/utils'
 
 import { ChatAttachment } from './chat-attachment'
 import { ChatInputForm } from './chat-input-form'
@@ -17,27 +20,18 @@ export default function SessionChat({ sessionId }: { sessionId: string }) {
 	})
 
 	const { mutate: sendPromptMutation, isPending } = useSendPromptMutation()
-	const messagesEndRef = useRef<null | HTMLDivElement>(null)
+	const { prompt, setPrompt, handleKeyPress } = usePrompt(() => {})
 
-	const scrollToBottom = () => {
-		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-	}
-
-	useEffect(() => {
-		setTimeout(() => scrollToBottom(), 100)
-	}, [messages])
+	const messagesEndRef = useAutoScroll(messages)
 
 	const handleSend = (promptText: string, files?: File[]) => {
 		sendPromptMutation({ sessionId, prompt: promptText, files })
 	}
 
-	const { prompt, setPrompt, handleKeyPress } = usePrompt(() => {})
-
 	return (
 		<div className='text-foreground flex h-full w-full flex-col'>
 			<div className='flex-1 overflow-y-auto p-6'>
-				{/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Добавлен класс "min-h-full" */}
-				<div className='mx-auto flex min-h-full w-full max-w-4xl flex-col justify-end'>
+				<div className='mx-auto flex min-h-full w-full max-w-5xl flex-col justify-end'>
 					<div className='flex flex-col gap-4'>
 						{messages?.map(message => (
 							<div
@@ -49,10 +43,10 @@ export default function SessionChat({ sessionId }: { sessionId: string }) {
 								}`}
 							>
 								<div
-									className={`max-w-2xl rounded-lg px-4 py-2 ${
+									className={`rounded-lg py-2 ${
 										message.role === 'user'
-											? 'bg-foreground/5'
-											: 'bg-transparent'
+											? 'bg-foreground/5 px-4 max-w-xl'
+											: 'bg-transparent px-1'
 									}`}
 								>
 									{message.attachmentUrls &&
@@ -72,7 +66,18 @@ export default function SessionChat({ sessionId }: { sessionId: string }) {
 												)}
 											</div>
 										)}
-									{message.content}
+
+									{message.role === 'user' ? (
+										<p className='whitespace-pre-wrap'>
+											{message.content}
+										</p>
+									) : (
+										<AiResponseRenderer
+											content={parseAiContent(
+												message.content
+											)}
+										/>
+									)}
 								</div>
 							</div>
 						))}
@@ -82,7 +87,7 @@ export default function SessionChat({ sessionId }: { sessionId: string }) {
 			</div>
 
 			<div className='bg-transparent p-4 pt-0'>
-				<div className='mx-auto w-full max-w-4xl'>
+				<div className='mx-auto w-full max-w-5xl'>
 					<ChatInputForm
 						prompt={prompt}
 						setPrompt={setPrompt}
