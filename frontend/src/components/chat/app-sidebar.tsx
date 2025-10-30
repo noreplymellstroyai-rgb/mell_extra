@@ -3,18 +3,23 @@
 import { ChevronUp, Moon, Sun } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useState } from 'react'
 
 import { useGetAllChatsQuery } from '@/api/hooks'
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
-	SidebarGroupContent,
-	SidebarGroupLabel,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
@@ -22,41 +27,20 @@ import {
 } from '@/components/ui/sidebar'
 
 import { useChatActions } from '@/hooks/chat/use-chat-actions'
+import { useSidebarActions } from '@/hooks/chat/use-sidebar-footer-actions'
 
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger
-} from '../ui/collapsible'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger
-} from '../ui/dropdown-menu'
-
-import { ChatHistoryItem } from './chat-history-item'
+import { ChatHistoryList } from './chat-history-list'
 import { ConfirmDeleteDialog } from './confirm-delete-dialog'
+import { ConfirmLogoutDialog } from './confirm-logout-dialog'
 
 export function AppSidebar() {
-	const params = useParams()
 	const { toggleSidebar } = useSidebar()
 	const { data: chats } = useGetAllChatsQuery()
+	const chatActions = useChatActions()
+	const { handleThemeToggle, handleLogout, isLogoutPending } =
+		useSidebarActions()
 
-	const {
-		chatToDelete,
-		setChatToDelete,
-		chatToRename,
-		setChatToRename,
-		newTitle,
-		setNewTitle,
-		inputRef,
-		handleRename,
-		handleConfirmDelete,
-		handleKeyDown,
-		isDeleting
-	} = useChatActions()
+	const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
 
 	return (
 		<>
@@ -118,43 +102,7 @@ export function AppSidebar() {
 					</SidebarGroup>
 
 					<SidebarGroup className='flex-1 overflow-y-auto p-4 pt-0'>
-						<Collapsible defaultOpen>
-							<CollapsibleTrigger className='w-full text-left'>
-								<SidebarGroupLabel className='hover:underline'>
-									Чаты
-								</SidebarGroupLabel>
-							</CollapsibleTrigger>
-							<CollapsibleContent>
-								<SidebarGroupContent>
-									<SidebarMenu>
-										{chats?.map(chat => (
-											<ChatHistoryItem
-												key={chat.id}
-												chat={chat}
-												isActive={params.id === chat.id}
-												isEditing={
-													chatToRename?.id === chat.id
-												}
-												newTitle={newTitle}
-												onTitleChange={setNewTitle}
-												onRename={handleRename}
-												onKeyDown={handleKeyDown}
-												onEdit={() => {
-													setChatToRename(chat)
-													setNewTitle(
-														chat.title || ''
-													)
-												}}
-												onDelete={() =>
-													setChatToDelete(chat)
-												}
-												inputRef={inputRef}
-											/>
-										))}
-									</SidebarMenu>
-								</SidebarGroupContent>
-							</CollapsibleContent>
-						</Collapsible>
+						<ChatHistoryList chats={chats} {...chatActions} />
 					</SidebarGroup>
 
 					<SidebarFooter>
@@ -162,7 +110,7 @@ export function AppSidebar() {
 							<SidebarMenuItem>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<button className='flex w-full items-center justify-between gap-2 group-data-[collapsible=icon]:w-auto'>
+										<button className='focus-visible:ring-ring flex w-full items-center justify-between gap-2 group-data-[collapsible=icon]:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'>
 											<div className='flex items-center gap-2'>
 												<Avatar>
 													<AvatarImage src='/images/logo.png' />
@@ -181,7 +129,10 @@ export function AppSidebar() {
 										side='top'
 										className='mb-4 w-72'
 									>
-										<DropdownMenuItem className='cursor-pointer'>
+										<DropdownMenuItem
+											onClick={handleThemeToggle}
+											className='cursor-pointer'
+										>
 											<div className='flex w-full items-center justify-between'>
 												<span>Тема</span>
 												<div className='relative h-[1.2rem] w-[1.2rem]'>
@@ -190,8 +141,12 @@ export function AppSidebar() {
 												</div>
 											</div>
 										</DropdownMenuItem>
-
-										<DropdownMenuItem className='cursor-pointer'>
+										<DropdownMenuItem
+											onClick={() =>
+												setIsLogoutDialogOpen(true)
+											}
+											className='cursor-pointer'
+										>
 											<span>Выйти</span>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
@@ -203,14 +158,19 @@ export function AppSidebar() {
 			</Sidebar>
 
 			<ConfirmDeleteDialog
-				open={!!chatToDelete}
-				onOpenChange={() => setChatToDelete(null)}
-				onConfirm={handleConfirmDelete}
-				chatTitle={chatToDelete?.title}
-				isPending={isDeleting}
+				open={!!chatActions.chatToDelete}
+				onOpenChange={() => chatActions.setChatToDelete(null)}
+				onConfirm={chatActions.handleConfirmDelete}
+				chatTitle={chatActions.chatToDelete?.title}
+				isPending={chatActions.isDeleting}
+			/>
+
+			<ConfirmLogoutDialog
+				open={isLogoutDialogOpen}
+				onOpenChange={setIsLogoutDialogOpen}
+				onConfirm={handleLogout}
+				isPending={isLogoutPending}
 			/>
 		</>
 	)
 }
-
-export default AppSidebar
