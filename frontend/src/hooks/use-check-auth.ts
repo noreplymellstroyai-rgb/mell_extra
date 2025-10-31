@@ -6,7 +6,7 @@ export function useCheckAuth() {
 	const { data, isLoading, isSuccess } = useQuery({
 		queryKey: ['checkAuth'],
 		queryFn: checkAuth,
-		retry: 0,
+		retry: 2,
 		refetchOnWindowFocus: false
 	})
 
