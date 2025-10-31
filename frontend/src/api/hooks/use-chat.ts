@@ -154,7 +154,7 @@ export function useSendNewChatPromptMutation(
 					'Отложенная инвалидация списка чатов для получения AI-заголовка...'
 				)
 				queryClient.invalidateQueries({ queryKey: chatKeys.all })
-			}, 8000)
+			}, 10000)
 		},
 
 		onError: error => {
