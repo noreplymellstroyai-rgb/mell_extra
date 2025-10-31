@@ -21,11 +21,18 @@ export function UnauthorizedModal({
 							свою учетную запись.
 						</DialogTitle>
 					</div>
-					<div className='flex w-full flex-col'>
+					<div className='flex w-full flex-col gap-2.5'>
 						<Link
-							href={`${process.env.NEXT_PUBLIC_CLIENT_URL}/auth`}
+							href={`${process.env.NEXT_PUBLIC_CLIENT_URL}/auth?mode=login`}
 						>
-							<Button className='w-full'>Авторизация</Button>
+							<Button className='w-full'>Войти</Button>
+						</Link>
+						<Link
+							href={`${process.env.NEXT_PUBLIC_CLIENT_URL}/auth?mode=register`}
+						>
+							<Button variant='outline' className='w-full'>
+								Зарегистрироваться
+							</Button>
 						</Link>
 					</div>
 				</div>

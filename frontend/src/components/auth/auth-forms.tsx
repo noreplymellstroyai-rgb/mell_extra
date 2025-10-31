@@ -1,29 +1,35 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
+
 import { AuthWrapper } from './auth-wrapper'
 import { LoginForm, RegisterForm } from './forms'
 import { useAuthForms } from '@/hooks'
 
 export function AuthForms() {
-	const { state, forms, actions } = useAuthForms()
+	const searchParams = useSearchParams()
+	const mode = searchParams.get('mode')
+
+	const initialIsRegistration = mode === 'register'
+	const { state, forms, actions } = useAuthForms(initialIsRegistration)
 
 	return (
 		<AuthWrapper
-			isRegistration={state.isRegistration}
+			isRegistration={!state.isRegistration}
 			onToggleType={actions.toggleFormType}
 			step={state.step}
 			setStep={actions.setStep}
 			onPrev={actions.handlePrevStep}
 		>
 			{state.isRegistration ? (
-				<LoginForm
-					form={forms.loginForm}
+				<RegisterForm
+					form={forms.registerForm}
 					state={state}
 					actions={actions}
 				/>
 			) : (
-				<RegisterForm
-					form={forms.registerForm}
+				<LoginForm
+					form={forms.loginForm}
 					state={state}
 					actions={actions}
 				/>

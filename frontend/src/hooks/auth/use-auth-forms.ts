@@ -7,8 +7,9 @@ import { loginSchema, registerSchema } from '@/data/auth'
 
 import { COUNTDOWN_SECONDS } from '@/data'
 
-export function useAuthForms() {
-	const [isRegistration, setIsRegistration] = useState(true)
+export function useAuthForms(initialIsRegistration: boolean = false) {
+	const [isRegistration, setIsRegistration] = useState(initialIsRegistration)
+
 	const [step, setStep] = useState(0)
 	const [direction, setDirection] = useState(1)
 	const [emailForVerification, setEmailForVerification] = useState('')

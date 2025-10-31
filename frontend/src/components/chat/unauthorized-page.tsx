@@ -13,6 +13,7 @@ import { Skeleton } from '../ui/skeleton'
 import { useClientRandomGreeting } from '@/hooks'
 
 export function LandingPage() {
+	const [prompt, setPrompt] = useState('')
 	const [isModalOpen, setIsModalOpen] = useState(false)
 
 	const handleGuestSend = () => {
@@ -30,13 +31,13 @@ export function LandingPage() {
 						</div>
 						<div className='flex items-center gap-2.5'>
 							<Link
-								href='/auth'
+								href='/auth?mode=login'
 								className='bg-foreground text-background rounded-md px-4 py-2'
 							>
 								Войти
 							</Link>
 							<Link
-								href='/auth'
+								href='/auth?mode=register'
 								className='border-muted rounded-md border-2 px-4 py-2'
 							>
 								Зарегистрироваться бесплатно
@@ -54,8 +55,8 @@ export function LandingPage() {
 						)}
 					</h1>
 					<ChatInputForm
-						prompt=''
-						setPrompt={() => {}}
+						prompt={prompt}
+						setPrompt={setPrompt}
 						handleSendPrompt={handleGuestSend}
 						isLoading={false}
 					/>
