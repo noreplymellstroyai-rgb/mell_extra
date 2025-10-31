@@ -35,3 +35,9 @@ export const checkAuth = async () => {
 
 	return res.data
 }
+
+export const getMe = async () => {
+	const res = await api.get<IUser>('/auth/me')
+
+	return res.data
+}

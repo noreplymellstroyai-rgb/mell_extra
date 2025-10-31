@@ -5,7 +5,7 @@ import {
 	useQuery,
 	useQueryClient
 } from '@tanstack/react-query'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 import { chatKeys, createUserMessage } from '@/lib/utils'
 
@@ -60,16 +60,23 @@ export function useSendPromptMutation() {
 				queryClient.getQueryData<IMessage[]>(queryKey)
 
 			const userMessage = createUserMessage(prompt)
-
 			if (files && files.length > 0) {
 				userMessage.attachmentUrls = files.map(file =>
 					URL.createObjectURL(file)
 				)
 			}
 
+			const thinkingMessage: IMessage = {
+				id: 'thinking-placeholder',
+				role: 'assistant',
+				content: '[[THINKING]]',
+				createdAt: new Date().toISOString()
+			}
+
 			queryClient.setQueryData<IMessage[]>(queryKey, oldData => [
 				...(oldData || []),
-				userMessage
+				userMessage,
+				thinkingMessage
 			])
 
 			return { previousMessages }
@@ -111,8 +118,18 @@ export function useSendNewChatPromptMutation(
 				)
 			}
 
+			const thinkingMessage: IMessage = {
+				id: 'thinking-placeholder',
+				role: 'assistant',
+				content: '[[THINKING]]',
+				createdAt: new Date().toISOString()
+			}
+
 			const newChatHistoryKey = chatKeys.history(newChat.id)
-			queryClient.setQueryData(newChatHistoryKey, [userMessage])
+			queryClient.setQueryData(newChatHistoryKey, [
+				userMessage,
+				thinkingMessage
+			])
 
 			router.push(`/chat/${newChat.id}`)
 

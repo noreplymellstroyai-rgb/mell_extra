@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import { Montserrat } from 'next/font/google'
 
-import { ThemeButton } from '@/components/ui/custom/theme-button'
-
 import './globals.css'
 import { QueryProvider, ThemeProvider } from '@/providers'
+import { ToasterProvider } from '@/providers/toaster-provider'
 
 const montserrat = Montserrat({
 	subsets: ['latin']
@@ -25,11 +24,11 @@ export default function RootLayout({
 			<body className={`${montserrat.className} antialiased`}>
 				<ThemeProvider
 					attribute='class'
-					defaultTheme='dark'
+					defaultTheme='system'
 					enableSystem
 					disableTransitionOnChange
 				>
-
+					<ToasterProvider />
 					<QueryProvider>{children}</QueryProvider>
 				</ThemeProvider>
 			</body>

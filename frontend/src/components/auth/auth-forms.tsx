@@ -16,14 +16,14 @@ export function AuthForms() {
 			onPrev={actions.handlePrevStep}
 		>
 			{state.isRegistration ? (
-				<RegisterForm
-					form={forms.registerForm}
+				<LoginForm
+					form={forms.loginForm}
 					state={state}
 					actions={actions}
 				/>
 			) : (
-				<LoginForm
-					form={forms.loginForm}
+				<RegisterForm
+					form={forms.registerForm}
 					state={state}
 					actions={actions}
 				/>

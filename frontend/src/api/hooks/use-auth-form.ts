@@ -1,6 +1,18 @@
-import { type UseMutationOptions, useMutation } from '@tanstack/react-query'
+import {
+	type UseMutationOptions,
+	UseQueryOptions,
+	useMutation,
+	useQuery
+} from '@tanstack/react-query'
 
-import { checkEmail, confirmEmail, login, logout, register } from '../requests'
+import {
+	checkEmail,
+	confirmEmail,
+	getMe,
+	login,
+	logout,
+	register
+} from '../requests'
 import { AuthRequest, ConfirmEmailRequest, IUser } from '../types'
 
 export function useLoginMutation(
@@ -65,6 +77,16 @@ export function useLogoutMutation(
 	return useMutation({
 		mutationKey: ['logout'],
 		mutationFn: () => logout(),
+		...options
+	})
+}
+
+export function useGetMe(
+	options?: Omit<UseQueryOptions<IUser>, 'queryKey' | 'queryFn'>
+) {
+	return useQuery({
+		queryKey: ['me'],
+		queryFn: getMe,
 		...options
 	})
 }

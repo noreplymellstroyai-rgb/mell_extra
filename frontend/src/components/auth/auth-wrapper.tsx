@@ -70,7 +70,7 @@ export function AuthWrapper({
 						{children}
 					</motion.div>
 
-					{isRegistration && (
+					{!isRegistration && (
 						<div className='text-foreground/50 relative flex w-[330px] items-center justify-center pt-6'>
 							<AnimatePresence>
 								{step > 0 && (
@@ -123,7 +123,7 @@ export function AuthWrapper({
 								className='flex max-h-[130px] w-[330px] flex-col items-center overflow-hidden'
 							>
 								<p className='dark:text-muted-foreground text-center text-base font-normal text-black/60'>
-									{isRegistration
+									{!isRegistration
 										? 'Есть аккаунт?'
 										: 'Нет аккаунта?'}{' '}
 									<button
@@ -131,7 +131,7 @@ export function AuthWrapper({
 										onClick={onToggleType}
 										className='text-foreground cursor-pointer font-medium hover:underline focus:outline-none'
 									>
-										{isRegistration
+										{!isRegistration
 											? 'Вход'
 											: 'Регистрация'}
 									</button>

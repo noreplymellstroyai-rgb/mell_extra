@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { toast } from 'sonner'
 
 import { useDeleteChatMutation, useRenameChatMutation } from '@/api/hooks'
 import { IChat } from '@/api/types'
@@ -35,10 +36,18 @@ export function useChatActions() {
 		}
 
 		try {
-			await renameMutation.mutateAsync({
-				sessionId: chatToRename.id,
-				payload: { title: newTitle.trim() }
-			})
+			await toast.promise(
+				renameMutation.mutateAsync({
+					sessionId: chatToRename.id,
+					payload: { title: newTitle.trim() }
+				}),
+				{
+					loading: 'Переименование чата...',
+					success: 'Чат успешно переименован!',
+					error: 'Не удалось переименовать чат'
+				}
+			)
+
 			setChatToRename(null)
 		} catch (error) {
 			console.error('Не удалось переименовать чат:', error)
@@ -49,17 +58,18 @@ export function useChatActions() {
 		if (!chatToDelete) return
 
 		try {
-			await deleteMutation.mutateAsync(chatToDelete.id)
+			await toast.promise(deleteMutation.mutateAsync(chatToDelete.id), {
+				loading: 'Удаление чата...',
+				success: 'Чат успешно удален!',
+				error: 'Не удалось удалить чат'
+			})
 
 			const pathSegments = pathname.split('/')
 			const currentChatId =
 				pathSegments[1] === 'chat' ? pathSegments[2] : null
 
 			if (currentChatId && currentChatId === chatToDelete.id) {
-				console.log('Условие выполнено! Редиректим на главную...')
 				router.push('/')
-			} else {
-				console.log('Условие НЕ выполнено. Редирект не нужен.')
 			}
 
 			setChatToDelete(null)

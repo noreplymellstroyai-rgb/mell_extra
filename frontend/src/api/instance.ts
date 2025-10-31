@@ -16,25 +16,30 @@ api.interceptors.response.use(
 	async error => {
 		const originalRequest = error.config
 
+		const requestUrl = originalRequest.url || ''
+
 		if (
-			error.response.status === 401 &&
+			error.response?.status === 401 &&
 			originalRequest &&
 			!originalRequest._isRetry &&
-			!originalRequest.url.includes('/auth')
+			!requestUrl.includes('/auth') &&
+			!requestUrl.includes('/me')
 		) {
 			originalRequest._isRetry = true
 
 			try {
+				console.log('Токен протух. Пытаюсь обновить...')
 				await api.post('/auth/refresh')
 
 				return api.request(originalRequest)
 			} catch (refreshError) {
 				console.error(
-					'Не удалось обновить токен, пользователю нужно выйти из системы'
+					'Не удалось обновить токен. Выполняю выход из системы.'
 				)
 
-				console.log(refreshError)
-
+				if (typeof window !== 'undefined') {
+					window.location.href = '/auth'
+				}
 				return Promise.reject(refreshError)
 			}
 		}

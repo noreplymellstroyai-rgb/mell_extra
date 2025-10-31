@@ -39,8 +39,7 @@ export class GeminiService {
 		})
 
 		this.TEXT_ONLY_MODEL = GOOGLE_AI.getGenerativeModel({
-			model: this.GEMINI_MODEL,
-			systemInstruction: this.SYSTEM_PROMPT
+			model: this.GEMINI_MODEL
 		})
 	}
 

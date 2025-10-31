@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronUp, Moon, Sun } from 'lucide-react'
+import { ChevronUp, LogIn, Moon, Sun } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -25,6 +25,7 @@ import {
 	SidebarMenuItem,
 	useSidebar
 } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
 
 import { useChatActions } from '@/hooks/chat/use-chat-actions'
 import { useSidebarActions } from '@/hooks/chat/use-sidebar-footer-actions'
@@ -32,15 +33,135 @@ import { useSidebarActions } from '@/hooks/chat/use-sidebar-footer-actions'
 import { ChatHistoryList } from './chat-history-list'
 import { ConfirmDeleteDialog } from './confirm-delete-dialog'
 import { ConfirmLogoutDialog } from './confirm-logout-dialog'
+import { useCheckAuth } from '@/hooks'
 
 export function AppSidebar() {
 	const { toggleSidebar } = useSidebar()
-	const { data: chats } = useGetAllChatsQuery()
+
+	const { user, isAuthorized, isLoadingAuth } = useCheckAuth()
+
+	const { data: chats } = useGetAllChatsQuery({
+		enabled: isAuthorized
+	})
 	const chatActions = useChatActions()
 	const { handleThemeToggle, handleLogout, isLogoutPending } =
 		useSidebarActions()
 
 	const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
+
+	if (isLoadingAuth) {
+		return (
+			<Sidebar>
+				<SidebarContent className='flex h-full flex-col'>
+					<SidebarGroup className='p-4'>
+						<div className='mb-4 flex items-center justify-between'>
+							<Skeleton className='h-8 w-8 rounded-full' />
+						</div>
+						<Skeleton className='h-8 w-full rounded-full' />
+					</SidebarGroup>
+
+					<div className='flex-1' />
+
+					<SidebarFooter>
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<div className='flex w-full items-center gap-3'>
+									<Skeleton className='h-8 w-8 rounded-full' />
+								</div>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarFooter>
+				</SidebarContent>
+			</Sidebar>
+		)
+	}
+
+	if (!isAuthorized) {
+		return (
+			<Sidebar>
+				<SidebarContent className='flex h-full flex-col overflow-x-hidden'>
+					<SidebarGroup className='p-4'>
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<div className='mb-4 flex items-center justify-between'>
+									<Image
+										src='/icons/logo-icon.svg'
+										alt='logo'
+										width={31}
+										height={31}
+										className='min-h-[31px] min-w-[31px]'
+									/>
+									<Button
+										variant='ghost'
+										size='custom'
+										onClick={toggleSidebar}
+										className='group-data-[collapsible=icon]:hidden'
+									>
+										<Image
+											src='/icons/sidebar-icon.svg'
+											alt='sidebar toggle'
+											width={22}
+											height={22}
+										/>
+									</Button>
+								</div>
+							</SidebarMenuItem>
+
+							<SidebarMenuItem className='mt-0'>
+								<SidebarMenuButton
+									variant='ghost'
+									className='text-foreground'
+									disabled
+								>
+									<Image
+										src='/icons/new-chat-icon-dark.svg'
+										alt='new chat'
+										width={20}
+										height={20}
+										className='min-h-5 min-w-5 pr-1 dark:hidden'
+									/>
+									<Image
+										src='/icons/new-chat-icon-light.svg'
+										alt='new chat'
+										width={20}
+										height={20}
+										className='hidden min-h-5 min-w-5 pr-1 dark:block'
+									/>
+									<span className='text-sm group-data-[collapsible=icon]:hidden'>
+										Создание чатов недоступно
+									</span>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarGroup>
+
+					<div className='flex-1 p-4 pt-0'>
+						<p className='text-muted-foreground text-sm whitespace-pre group-data-[collapsible=icon]:hidden'>
+							История чатов недоступна
+						</p>
+					</div>
+
+					<SidebarFooter>
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<Link
+									href={`${process.env.NEXT_PUBLIC_CLIENT_URL}/auth`}
+									passHref
+								>
+									<SidebarMenuButton className='text-foreground w-full cursor-pointer justify-start'>
+										<LogIn className='mr-3 h-5 w-5 min-w-5' />
+										<span className='text-sm group-data-[collapsible=icon]:hidden'>
+											Войти
+										</span>
+									</SidebarMenuButton>
+								</Link>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarFooter>
+				</SidebarContent>
+			</Sidebar>
+		)
+	}
 
 	return (
 		<>
@@ -76,7 +197,7 @@ export function AppSidebar() {
 								<SidebarMenuItem className='mt-0'>
 									<SidebarMenuButton
 										variant='ghost'
-										className='text-foreground'
+										className='text-foreground cursor-pointer'
 									>
 										<Image
 											src='/icons/new-chat-icon-dark.svg'
@@ -110,16 +231,20 @@ export function AppSidebar() {
 							<SidebarMenuItem>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<button className='focus-visible:ring-ring flex w-full items-center justify-between gap-2 group-data-[collapsible=icon]:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'>
+										<button className='flex w-full cursor-pointer items-center justify-between gap-2 group-data-[collapsible=icon]:w-auto focus:outline-none'>
 											<div className='flex items-center gap-2'>
 												<Avatar>
-													<AvatarImage src='/images/logo.png' />
+													<AvatarImage
+														src={user?.picture}
+													/>
 													<AvatarFallback>
-														CN
+														{user?.email
+															.toUpperCase()
+															.slice(0, 1)}
 													</AvatarFallback>
 												</Avatar>
 												<span className='text-sm group-data-[collapsible=icon]:hidden'>
-													Username
+													{user?.email}
 												</span>
 											</div>
 											<ChevronUp className='h-4 w-4 shrink-0 group-data-[collapsible=icon]:hidden' />

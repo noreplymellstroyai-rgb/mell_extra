@@ -71,3 +71,4 @@ export const renameChatRequest = async ({
 export const deleteChatRequest = async (sessionId: string): Promise<void> => {
 	await api.delete(`/chat/${sessionId}`)
 }
+

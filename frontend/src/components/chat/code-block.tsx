@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Clipboard } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, Clipboard } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -20,6 +20,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
 	const { theme } = useTheme()
 	const { isCopied, copy } = useCopyToClipboard()
 	const [mounted, setMounted] = useState(false)
+	const [isExpanded, setIsExpanded] = useState(true)
 
 	useEffect(() => {
 		setMounted(true)
@@ -29,9 +30,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
 		language.charAt(0).toUpperCase() + language.slice(1)
 
 	const baseStyle = theme === 'dark' ? oneDark : oneLight
-
 	const codeStyle = { ...baseStyle }
-
 	const preTagStyle = codeStyle['pre[class*="language-"]']
 	if (preTagStyle && preTagStyle.background) {
 		delete preTagStyle.background
@@ -44,46 +43,70 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
 	}
 
 	return (
-		<div className='bg-background/50 relative rounded-lg font-mono text-sm'>
-			<div className='bg-muted/30 flex items-center justify-between rounded-t-lg px-4 py-2'>
+		<div className='bg-background/90 dark:bg-background/30 relative rounded-lg font-mono text-sm backdrop-blur-2xl'>
+			<div className='bg-muted/50 flex items-center justify-between rounded-t-lg px-4 py-2'>
 				<span className='text-muted-foreground font-semibold'>
 					{formattedLanguage}
 				</span>
-				<button
-					onClick={() => copy(code)}
-					className='text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 rounded-md p-1.5 text-xs transition-colors'
-					aria-label='Copy code'
-				>
-					{isCopied ? (
-						<>
-							<Check size={14} />
-							Скопировано!
-						</>
-					) : (
-						<>
-							<Clipboard size={14} />
-						</>
-					)}
-				</button>
+				<div className='flex items-center gap-1.5'>
+					<button
+						onClick={() => copy(code)}
+						className='text-muted-foreground hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-1.5 rounded-md p-1.5 text-xs transition-colors'
+						aria-label='Copy code'
+					>
+						{isCopied ? (
+							<>
+								<Check size={14} />
+								Скопировано
+							</>
+						) : (
+							<>
+								<Clipboard size={14} />
+							</>
+						)}
+					</button>
+					<button
+						onClick={() => setIsExpanded(!isExpanded)}
+						className='text-muted-foreground hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center rounded-md p-1.5 text-xs transition-colors'
+						aria-label={
+							isExpanded ? 'Свернуть код' : 'Развернуть код'
+						}
+					>
+						<ChevronUp
+							className={`transform transition-transform duration-500 ${
+								isExpanded ? '' : 'rotate-180'
+							}`}
+							size={14}
+						/>
+					</button>
+				</div>
 			</div>
 
-			<SyntaxHighlighter
-				language={language}
-				style={codeStyle}
-				showLineNumbers={false}
-				customStyle={{
-					margin: 0,
-					padding: '1rem',
-					backgroundColor: 'transparent'
-				}}
-				codeTagProps={{
-					style: {
-						fontFamily: 'inherit'
-					}
-				}}
+			<div
+				className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+					isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+				}`}
 			>
-				{String(code).replace(/\n$/, '')}
-			</SyntaxHighlighter>
+				<div className='overflow-hidden'>
+					<SyntaxHighlighter
+						language={language}
+						style={codeStyle}
+						showLineNumbers={false}
+						customStyle={{
+							margin: 0,
+							padding: '1rem',
+							backgroundColor: 'transparent'
+						}}
+						codeTagProps={{
+							style: {
+								fontFamily: 'inherit'
+							}
+						}}
+					>
+						{String(code).replace(/\n$/, '')}
+					</SyntaxHighlighter>
+				</div>
+			</div>
 		</div>
 	)
 }

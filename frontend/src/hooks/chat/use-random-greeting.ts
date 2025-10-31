@@ -1,15 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export function useRandomGreeting(phrases: string[]): string {
-	const initialGreeting = phrases.length > 0 ? phrases[0] : ''
-	const [greeting, setGreeting] = useState(initialGreeting)
-
-	useEffect(() => {
-		if (phrases.length > 0) {
-			const randomIndex = Math.floor(Math.random() * phrases.length)
-			setGreeting(phrases[randomIndex])
+	const [greeting] = useState(() => {
+		if (phrases.length === 0) {
+			return ''
 		}
-	}, [phrases])
+		const randomIndex = Math.floor(Math.random() * phrases.length)
+		return phrases[randomIndex]
+	})
 
 	return greeting
 }

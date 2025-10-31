@@ -1,7 +1,6 @@
 import type { PropsWithChildren } from 'react'
 
 import { AppSidebar } from '@/components/chat/app-sidebar'
-import { ThemeButton } from '@/components/ui/custom/theme-button'
 import { SidebarProvider } from '@/components/ui/sidebar'
 
 export default function ChatLayout({ children }: PropsWithChildren) {
@@ -31,7 +30,6 @@ export default function ChatLayout({ children }: PropsWithChildren) {
 				<AppSidebar />
 
 				<main className='bg-background/30 flex-1 backdrop-blur-md'>
-					<ThemeButton className='absolute top-10 right-10' />
 					{children}
 				</main>
 			</div>

@@ -20,6 +20,7 @@ async function bootstrap() {
 	app.useGlobalPipes(new ValidationPipe())
 	app.use(cookieParser(config.getOrThrow<string>('COOKIES_SECRET')))
 	app.set('trust proxy', true)
+	app.setGlobalPrefix('api')
 
 	try {
 		await app.listen(port)

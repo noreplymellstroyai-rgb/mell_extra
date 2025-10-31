@@ -61,7 +61,7 @@ export function ChatInputForm({
 
 	return (
 		<div
-			className={`bg-background relative rounded-2xl border px-5 py-4 shadow-lg backdrop-blur-xl transition-all ${
+			className={`relative rounded-2xl border bg-transparent px-5 py-4 shadow-lg transition-all ${
 				isDragging
 					? 'border-primary border-dashed'
 					: 'border-foreground/20'
@@ -90,7 +90,7 @@ export function ChatInputForm({
 
 			<div>
 				<Textarea
-					placeholder='Спросите что-нибудь или перетащите/вставьте изображение...'
+					placeholder='Отправьте сообщение или перенесите изображение'
 					className='max-h-52 w-full resize-none border-none bg-transparent pr-2 focus:ring-0 focus-visible:ring-0'
 					rows={1}
 					value={prompt}
@@ -121,7 +121,7 @@ export function ChatInputForm({
 				/>
 				<Button
 					variant='outline'
-					className='border-foreground/20 rounded-3xl'
+					className='border-foreground/20 gap-0 rounded-3xl'
 					onClick={() => fileInputRef.current?.click()}
 					disabled={isLoading || files.length >= 5}
 				>
