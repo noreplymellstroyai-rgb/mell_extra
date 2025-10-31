@@ -1,3 +1,4 @@
+// ЭТОТ ФАЙЛ МЕНЯТЬ НЕ НУЖНО. ОН УЖЕ НАПИСАН ПРАВИЛЬНО.
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import {
 	ConflictException,
@@ -25,14 +26,10 @@ import { JwtPayload } from './interfaces'
 export class AuthService {
 	private readonly JWT_ACCESS_TOKEN_TTL: StringValue
 	private readonly JWT_REFRESH_TOKEN_TTL: StringValue
-
 	private readonly COOKIES_DOMAIN: string
-
 	private readonly EXPIRE_MINUTES_VERIFICATION_CODE: StringValue
-
 	private readonly MAX_REQUESTS_EMAIL: number
 	private readonly COOLDOWN_REQUESTS_EMAIL: StringValue
-
 	private readonly MAX_REQUESTS_IP: number
 	private readonly COOLDOWN_REQUESTS_IP: StringValue
 
@@ -42,7 +39,6 @@ export class AuthService {
 		private readonly jwtService: JwtService,
 		private readonly userService: UserService,
 		private emailService: EmailService,
-
 		@Inject('REDIS_CLIENT') private readonly redis: Redis
 	) {
 		this.JWT_ACCESS_TOKEN_TTL = configService.getOrThrow<StringValue>(
@@ -51,20 +47,16 @@ export class AuthService {
 		this.JWT_REFRESH_TOKEN_TTL = configService.getOrThrow<StringValue>(
 			'JWT_REFRESH_TOKEN_TTL'
 		)
-
 		this.EXPIRE_MINUTES_VERIFICATION_CODE =
 			configService.getOrThrow<StringValue>(
 				'EXPIRE_MINUTES_VERIFICATION_CODE'
 			)
-
 		this.COOKIES_DOMAIN = configService.getOrThrow<string>('COOKIES_DOMAIN')
-
 		this.MAX_REQUESTS_EMAIL =
 			configService.getOrThrow<number>('MAX_REQUESTS_EMAIL')
 		this.COOLDOWN_REQUESTS_EMAIL = configService.getOrThrow<StringValue>(
 			'COOLDOWN_REQUESTS_EMAIL'
 		)
-
 		this.MAX_REQUESTS_IP =
 			configService.getOrThrow<number>('MAX_REQUESTS_IP')
 		this.COOLDOWN_REQUESTS_IP = configService.getOrThrow<StringValue>(
@@ -74,32 +66,23 @@ export class AuthService {
 
 	async register(dto: RegisterRequest, ip: string) {
 		const { username, password, email } = dto
-
 		const isExists = await this.prismaService.user.findUnique({
-			where: {
-				email
-			}
+			where: { email }
 		})
-
 		if (isExists) {
 			if (isExists.isVerified) {
 				throw new ConflictException('Пользователь уже зарегистрирован')
 			}
-
 			await this.handleIpRequestLimit(ip)
 			await this.handleEmailRequestLimit(email)
-
 			const verificationCode = (
 				await this.generateVerificationCode()
 			).toString()
-
 			const verificationCodeExpiresAt = new Date(
 				Date.now() + ms(this.EXPIRE_MINUTES_VERIFICATION_CODE)
 			)
-
 			const hashPassword = await hash(password)
 			const hashVerificationCode = await hash(verificationCode)
-
 			await this.prismaService.user.update({
 				where: { id: isExists.id },
 				data: {
@@ -109,30 +92,24 @@ export class AuthService {
 					username
 				}
 			})
-
 			await this.emailService.sendUserConfirmation(
 				isExists.email,
 				verificationCode
 			)
-
 			return {
 				message:
 					'Мы отправили Вам новый код подтверждения. Пожалуйста, проверьте почту',
 				resent: true
 			}
 		}
-
 		const verificationCode = (
 			await this.generateVerificationCode()
 		).toString()
-
 		const verificationCodeExpiresAt = new Date(
 			Date.now() + ms(this.EXPIRE_MINUTES_VERIFICATION_CODE)
 		)
-
 		const hashPassword = await hash(password)
 		const hashVerificationCode = await hash(verificationCode)
-
 		const user = await this.prismaService.user.create({
 			data: {
 				username,
@@ -142,12 +119,10 @@ export class AuthService {
 				verificationCodeExpiresAt
 			}
 		})
-
 		await this.emailService.sendUserConfirmation(
 			user.email,
 			verificationCode
 		)
-
 		return {
 			message:
 				'Регистрация прошла успешно. Пожалуйста, проверьте вашу почту и введите код подтверждения'
@@ -156,29 +131,20 @@ export class AuthService {
 
 	async login(res: Response, dto: LoginRequest, ip: string) {
 		const { email, password } = dto
-
 		const user = await this.prismaService.user.findUnique({
-			where: {
-				email
-			}
+			where: { email }
 		})
-
 		await this.handleIpRequestLimit(ip)
 		await this.handleEmailRequestLimit(email)
-
 		if (!user) throw new NotFoundException('Неверный email или пароль')
-
 		const isValidPassword = await verify(user.password!, password)
-
 		if (!isValidPassword)
 			throw new NotFoundException('Неверный email или пароль')
-
 		if (!user.isVerified) {
 			throw new UnauthorizedException(
 				'Попробуйте зарегистрироваться заново'
 			)
 		}
-
 		return this.auth(res, user)
 	}
 
@@ -195,27 +161,23 @@ export class AuthService {
 
 	async refresh(req: Request, res: Response) {
 		const refreshToken = req.cookies['refreshToken']
-
 		if (!refreshToken) {
 			throw new UnauthorizedException('Refresh токен не найден')
 		}
-
 		try {
 			const payload: JwtPayload =
 				await this.jwtService.verifyAsync(refreshToken)
-
 			const user = await this.prismaService.user.findUnique({
 				where: { id: payload.id }
 			})
-
 			if (!user) {
 				throw new UnauthorizedException(
 					'Пользователь для токена не найден'
 				)
 			}
-
 			return this.auth(res, user)
 		} catch (error) {
+			res.clearCookie('refreshToken')
 			throw new UnauthorizedException(
 				'Невалидный или истекший refresh токен'
 			)
@@ -230,7 +192,6 @@ export class AuthService {
 			sameSite: 'lax',
 			path: '/'
 		})
-
 		res.clearCookie('refreshToken', {
 			domain: this.COOKIES_DOMAIN,
 			httpOnly: true,
@@ -238,16 +199,13 @@ export class AuthService {
 			sameSite: 'lax',
 			path: '/'
 		})
-
 		res.status(200).json({ message: 'Успешный выход из системы' })
 	}
 
 	private async auth(res: Response, user: User) {
 		const { accessToken, refreshToken, refreshTokenExpires } =
 			await this.generateTokens(user)
-
 		this.setCookies(res, refreshToken, accessToken, refreshTokenExpires)
-
 		return {
 			id: user.id,
 			email: user.email,
@@ -260,19 +218,15 @@ export class AuthService {
 		const payload: JwtPayload = {
 			id: user.id
 		}
-
 		const refreshTokenExpires = new Date(
 			Date.now() + ms(this.JWT_REFRESH_TOKEN_TTL)
 		)
-
 		const accessToken = await this.jwtService.signAsync(payload, {
 			expiresIn: this.JWT_ACCESS_TOKEN_TTL
 		})
-
 		const refreshToken = await this.jwtService.signAsync(payload, {
 			expiresIn: this.JWT_REFRESH_TOKEN_TTL
 		})
-
 		return {
 			accessToken,
 			refreshToken,
@@ -294,7 +248,6 @@ export class AuthService {
 			sameSite: 'lax',
 			path: '/'
 		})
-
 		res.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
 			domain: this.COOKIES_DOMAIN,
@@ -305,6 +258,7 @@ export class AuthService {
 		})
 	}
 
+	// ... остальной код без изменений
 	async findOrCreateUserByOAuth(req: {
 		user: {
 			email: string
@@ -314,7 +268,6 @@ export class AuthService {
 		}
 	}) {
 		let user = await this.userService.getByEmail(req.user.email)
-
 		if (!user) {
 			user = await this.prismaService.user.create({
 				data: {
@@ -324,7 +277,6 @@ export class AuthService {
 				}
 			})
 		}
-
 		return user
 	}
 
@@ -340,12 +292,9 @@ export class AuthService {
 		ip: string
 	) {
 		const { email } = req.user
-
 		await this.handleIpRequestLimit(ip)
 		await this.handleEmailRequestLimit(email)
-
 		const user = await this.findOrCreateUserByOAuth(req)
-
 		return this.auth(res, user)
 	}
 
@@ -353,17 +302,13 @@ export class AuthService {
 		const maxAttempts = this.MAX_REQUESTS_IP
 		const cooldownSeconds = ms(this.COOLDOWN_REQUESTS_IP) / 1000
 		const key = `rate-limit:ip:${ip}`
-
 		const currentCount = await this.redis.incr(key)
-
 		if (currentCount === 1) {
 			await this.redis.expire(key, cooldownSeconds)
 		}
-
 		if (currentCount > maxAttempts) {
 			const ttl = await this.redis.ttl(key)
 			const cooldown = ttl > 0 ? ttl : cooldownSeconds
-
 			throw new BadRequestException({
 				message: 'Превышен лимит запросов с вашего IP',
 				cooldown: cooldown
@@ -374,19 +319,15 @@ export class AuthService {
 	private async handleEmailRequestLimit(email: string): Promise<void> {
 		const maxAttempts = this.MAX_REQUESTS_EMAIL
 		const coolDownRequest = ms(this.COOLDOWN_REQUESTS_EMAIL)
-
 		const user = await this.prismaService.user.findUnique({
 			where: { email }
 		})
-
 		if (!user) {
 			return
 		}
-
 		const now = new Date()
 		const lastRequestAt = user.lastRequestAt
 		const attempts = user.currentRequestEmail ?? 0
-
 		if (
 			lastRequestAt &&
 			now.getTime() < lastRequestAt.getTime() + coolDownRequest
@@ -395,13 +336,11 @@ export class AuthService {
 				const timeLeft =
 					lastRequestAt.getTime() + coolDownRequest - now.getTime()
 				const secondsLeft = Math.ceil(timeLeft / 1000)
-
 				throw new BadRequestException({
 					message: 'Превышен лимит запросов',
 					cooldown: secondsLeft
 				})
 			}
-
 			await this.prismaService.user.update({
 				where: { email },
 				data: {
@@ -424,14 +363,11 @@ export class AuthService {
 		const user = await this.prismaService.user.findUnique({
 			where: { email }
 		})
-
 		if (user && user.isVerified) {
 			throw new ConflictException('Пользователь уже зарегистрирован')
 		}
-
 		await this.handleIpRequestLimit(ip)
 		await this.handleEmailRequestLimit(email)
-
 		return { message: 'Email доступен для регистрации' }
 	}
 
@@ -439,36 +375,28 @@ export class AuthService {
 		const isExist = await this.prismaService.user.findUnique({
 			where: { email: dto.email }
 		})
-
 		if (!isExist) throw new NotFoundException('Пользователь не найден')
-
 		if (isExist.isVerified)
 			throw new BadRequestException('Email уже подтвержден')
-
 		if (!isExist.verificationCode || !isExist.verificationCodeExpiresAt) {
 			throw new BadRequestException(
 				'Код подтверждения отсутствует или не был сгенерирован'
 			)
 		}
-
 		if (isExist.verificationCodeExpiresAt < new Date()) {
 			throw new BadRequestException(
 				'Срок действия кода истек. Пожалуйста, запросите новый код'
 			)
 		}
-
 		await this.handleIpRequestLimit(ip)
 		await this.handleEmailRequestLimit(isExist.email)
-
 		const isValidVerificationCode = await verify(
 			isExist.verificationCode,
 			dto.code
 		)
-
 		if (!isValidVerificationCode) {
 			throw new BadRequestException('Неверный код подтверждения')
 		}
-
 		const updatedUser = await this.prismaService.user.update({
 			where: { id: isExist.id },
 			data: {
@@ -477,9 +405,7 @@ export class AuthService {
 				verificationCodeExpiresAt: null
 			}
 		})
-
 		const { password } = updatedUser
-
 		return this.auth(res, isExist)
 	}
 }
