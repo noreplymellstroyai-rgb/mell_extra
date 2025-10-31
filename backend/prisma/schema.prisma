@@ -18,10 +18,7 @@ model User {
   verificationCodeExpiresAt DateTime? @map("verification_code_expires_at")
   isVerified                Boolean   @default(false) @map("is_verified")
   verificationCode          String?   @map("verification_code")
-
-  currentRequestEmail Int?      @default(0) @map("current_request_email")
-  lastRequestAt       DateTime? @default(now()) @map("last_request_at")
-
+  
   chatSessions ChatSession[]
 
   createdAt DateTime @default(now()) @map("created_at")

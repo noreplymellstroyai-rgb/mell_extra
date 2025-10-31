@@ -1,4 +1,3 @@
-// ЭТОТ ФАЙЛ МЕНЯТЬ НЕ НУЖНО. ОН УЖЕ НАПИСАН ПРАВИЛЬНО.
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import {
 	ConflictException,
@@ -32,6 +31,7 @@ export class AuthService {
 	private readonly COOLDOWN_REQUESTS_EMAIL: StringValue
 	private readonly MAX_REQUESTS_IP: number
 	private readonly COOLDOWN_REQUESTS_IP: StringValue
+
 
 	constructor(
 		private readonly prismaService: PrismaService,
@@ -258,7 +258,6 @@ export class AuthService {
 		})
 	}
 
-	// ... остальной код без изменений
 	async findOrCreateUserByOAuth(req: {
 		user: {
 			email: string
@@ -318,46 +317,26 @@ export class AuthService {
 
 	private async handleEmailRequestLimit(email: string): Promise<void> {
 		const maxAttempts = this.MAX_REQUESTS_EMAIL
-		const coolDownRequest = ms(this.COOLDOWN_REQUESTS_EMAIL)
-		const user = await this.prismaService.user.findUnique({
-			where: { email }
-		})
-		if (!user) {
-			return
+		const cooldownSeconds = ms(this.COOLDOWN_REQUESTS_EMAIL) / 1000
+		const key = `rate-limit:email:${email}`
+
+		const currentCount = await this.redis.incr(key)
+
+		if (currentCount === 1) {
+			await this.redis.expire(key, cooldownSeconds)
 		}
-		const now = new Date()
-		const lastRequestAt = user.lastRequestAt
-		const attempts = user.currentRequestEmail ?? 0
-		if (
-			lastRequestAt &&
-			now.getTime() < lastRequestAt.getTime() + coolDownRequest
-		) {
-			if (attempts >= maxAttempts) {
-				const timeLeft =
-					lastRequestAt.getTime() + coolDownRequest - now.getTime()
-				const secondsLeft = Math.ceil(timeLeft / 1000)
-				throw new BadRequestException({
-					message: 'Превышен лимит запросов',
-					cooldown: secondsLeft
-				})
-			}
-			await this.prismaService.user.update({
-				where: { email },
-				data: {
-					currentRequestEmail: attempts + 1,
-					lastRequestAt: now
-				}
-			})
-		} else {
-			await this.prismaService.user.update({
-				where: { email },
-				data: {
-					currentRequestEmail: 1,
-					lastRequestAt: now
-				}
+
+		if (currentCount > maxAttempts) {
+			const ttl = await this.redis.ttl(key)
+			const cooldown = ttl > 0 ? ttl : cooldownSeconds
+			throw new BadRequestException({
+				message: 'Превышен лимит запросов',
+				cooldown: cooldown
 			})
 		}
 	}
+
+	
 
 	async checkEmail(email: string, ip: string) {
 		const user = await this.prismaService.user.findUnique({
