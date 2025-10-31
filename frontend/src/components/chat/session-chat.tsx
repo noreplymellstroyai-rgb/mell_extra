@@ -25,7 +25,6 @@ export default function SessionChat({ sessionId }: { sessionId: string }) {
 	const messagesEndRef = useAutoScroll(messages)
 
 	const handleSend = (promptText: string, files?: File[]) => {
-		// ИСПРАВЛЕНО: вернул 'promptText' вместо 'text'
 		sendPromptMutation({ sessionId, prompt: promptText, files })
 	}
 
