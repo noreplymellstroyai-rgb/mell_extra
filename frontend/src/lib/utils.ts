@@ -64,3 +64,22 @@ export const parseAiContent = (content: string | any): ContentBlock[] => {
 		return [{ type: 'paragraph', content: content }]
 	}
 }
+
+export function normalizeShikijiLanguage(language: string): string {
+	const lang = language.toLowerCase()
+	const languageMap: Record<string, string> = {
+		js: 'javascript',
+		ts: 'typescript',
+		py: 'python',
+		sh: 'bash',
+		md: 'markdown',
+		cpp: 'c++',
+		csharp: 'c#'
+	}
+	return languageMap[lang] || lang
+}
+
+export function formatLanguageName(language: string): string {
+	if (!language) return ''
+	return language.charAt(0).toUpperCase() + language.slice(1)
+}

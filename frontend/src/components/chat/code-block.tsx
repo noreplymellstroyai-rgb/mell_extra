@@ -1,50 +1,38 @@
 'use client'
 
-import { Check, ChevronDown, ChevronUp, Clipboard } from 'lucide-react'
-import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import {
-	oneDark,
-	oneLight
-} from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { Check, ChevronUp, Clipboard } from 'lucide-react'
+import React, { memo } from 'react'
 
+import { useSyntaxHighlighting } from '@/hooks/chat/use-syntax-highlighting'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { useToggle } from '@/hooks/use-toggle'
+
+import { formatLanguageName } from '@/lib/utils'
+
+import { Skeleton } from '../ui/skeleton'
 
 interface CodeBlockProps {
 	language: string
 	code: string
 }
 
-export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
-	const { theme } = useTheme()
+export const CodeBlock = memo<CodeBlockProps>(({ language, code }) => {
 	const { isCopied, copy } = useCopyToClipboard()
-	const [mounted, setMounted] = useState(false)
-	const [isExpanded, setIsExpanded] = useState(true)
+	const [isExpanded, toggleExpanded] = useToggle(true)
+	const { highlightedCode, isLoading } = useSyntaxHighlighting({
+		code,
+		language
+	})
 
-	useEffect(() => {
-		setMounted(true)
-	}, [])
+	const formattedLanguage = formatLanguageName(language)
 
-	const formattedLanguage =
-		language.charAt(0).toUpperCase() + language.slice(1)
-
-	const baseStyle = theme === 'dark' ? oneDark : oneLight
-	const codeStyle = { ...baseStyle }
-	const preTagStyle = codeStyle['pre[class*="language-"]']
-	if (preTagStyle && preTagStyle.background) {
-		delete preTagStyle.background
-	}
-
-	if (!mounted) {
-		return (
-			<div className='bg-muted relative h-48 animate-pulse rounded-lg font-mono text-sm' />
-		)
+	if (isLoading) {
+		return <Skeleton className='h-48 w-full' />
 	}
 
 	return (
 		<div className='bg-background/90 dark:bg-background/30 relative rounded-lg font-mono text-sm backdrop-blur-2xl'>
-			<div className='bg-muted/50 flex items-center justify-between rounded-t-lg px-4 py-2'>
+			<header className='bg-muted/50 flex items-center justify-between rounded-t-lg px-4 py-2'>
 				<span className='text-muted-foreground font-semibold'>
 					{formattedLanguage}
 				</span>
@@ -60,13 +48,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
 								Скопировано
 							</>
 						) : (
-							<>
-								<Clipboard size={14} />
-							</>
+							<Clipboard size={14} />
 						)}
 					</button>
 					<button
-						onClick={() => setIsExpanded(!isExpanded)}
+						onClick={toggleExpanded}
 						className='text-muted-foreground hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center rounded-md p-1.5 text-xs transition-colors'
 						aria-label={
 							isExpanded ? 'Свернуть код' : 'Развернуть код'
@@ -80,33 +66,22 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
 						/>
 					</button>
 				</div>
-			</div>
+			</header>
 
 			<div
 				className={`grid transition-[grid-template-rows] duration-300 ease-out ${
 					isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
 				}`}
 			>
-				<div className='overflow-hidden'>
-					<SyntaxHighlighter
-						language={language}
-						style={codeStyle}
-						showLineNumbers={false}
-						customStyle={{
-							margin: 0,
-							padding: '1rem',
-							backgroundColor: 'transparent'
-						}}
-						codeTagProps={{
-							style: {
-								fontFamily: 'inherit'
-							}
-						}}
-					>
-						{String(code).replace(/\n$/, '')}
-					</SyntaxHighlighter>
+				<div className='overflow-hidden rounded-b-lg'>
+					<div
+						className='p-5'
+						dangerouslySetInnerHTML={{ __html: highlightedCode }}
+					/>
 				</div>
 			</div>
 		</div>
 	)
-}
+})
+
+CodeBlock.displayName = 'CodeBlock'
