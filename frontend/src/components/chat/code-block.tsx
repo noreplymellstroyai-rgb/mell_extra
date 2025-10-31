@@ -1,13 +1,14 @@
 'use client'
 
-import { Check, ChevronUp, Clipboard } from 'lucide-react'
-import React, { memo } from 'react'
+import { Check, ChevronUp, Clipboard, Download } from 'lucide-react'
+import React, { memo, useCallback } from 'react'
 
+import { useDownloadFile } from '@/hooks/chat/use-download-file'
 import { useSyntaxHighlighting } from '@/hooks/chat/use-syntax-highlighting'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useToggle } from '@/hooks/use-toggle'
 
-import { formatLanguageName } from '@/lib/utils'
+import { formatLanguageName, getLanguageFileExtension } from '@/lib/utils'
 
 import { Skeleton } from '../ui/skeleton'
 
@@ -19,6 +20,7 @@ interface CodeBlockProps {
 export const CodeBlock = memo<CodeBlockProps>(({ language, code }) => {
 	const { isCopied, copy } = useCopyToClipboard()
 	const [isExpanded, toggleExpanded] = useToggle(true)
+	const { download } = useDownloadFile()
 	const { highlightedCode, isLoading } = useSyntaxHighlighting({
 		code,
 		language
@@ -26,8 +28,14 @@ export const CodeBlock = memo<CodeBlockProps>(({ language, code }) => {
 
 	const formattedLanguage = formatLanguageName(language)
 
+	const handleDownload = useCallback(() => {
+		const extension = getLanguageFileExtension(language)
+		const filename = `code-${Date.now()}${extension}`
+		download({ content: code, filename })
+	}, [code, language, download])
+
 	if (isLoading) {
-		return <Skeleton className='h-48 w-full' />
+		return <Skeleton className='h-48 w-full rounded-lg' />
 	}
 
 	return (
@@ -40,7 +48,7 @@ export const CodeBlock = memo<CodeBlockProps>(({ language, code }) => {
 					<button
 						onClick={() => copy(code)}
 						className='text-muted-foreground hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-1.5 rounded-md p-1.5 text-xs transition-colors'
-						aria-label='Copy code'
+						aria-label='Скопировать код'
 					>
 						{isCopied ? (
 							<>
@@ -50,6 +58,13 @@ export const CodeBlock = memo<CodeBlockProps>(({ language, code }) => {
 						) : (
 							<Clipboard size={14} />
 						)}
+					</button>
+					<button
+						onClick={handleDownload}
+						className='text-muted-foreground hover:bg-accent hover:text-accent-foreground flex cursor-pointer items-center gap-1.5 rounded-md p-1.5 text-xs transition-colors'
+						aria-label='Скачать код'
+					>
+						<Download size={14} />
 					</button>
 					<button
 						onClick={toggleExpanded}

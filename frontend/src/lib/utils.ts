@@ -83,3 +83,28 @@ export function formatLanguageName(language: string): string {
 	if (!language) return ''
 	return language.charAt(0).toUpperCase() + language.slice(1)
 }
+
+export function getLanguageFileExtension(language: string): string {
+	const lang = language.toLowerCase()
+	const extensionMap: Record<string, string> = {
+		javascript: '.js',
+		typescript: '.ts',
+		python: '.py',
+		bash: '.sh',
+		shell: '.sh',
+		markdown: '.md',
+		json: '.json',
+		html: '.html',
+		css: '.css',
+		'c++': '.cpp',
+		cpp: '.cpp',
+		'c#': '.cs',
+		csharp: '.cs',
+		java: '.java',
+		go: '.go',
+		rust: '.rs',
+		sql: '.sql',
+		yaml: '.yml'
+	}
+	return extensionMap[lang] || '.txt'
+}
