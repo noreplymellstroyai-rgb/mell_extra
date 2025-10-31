@@ -1,11 +1,6 @@
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
-import {
-	type BundledLanguage,
-	bundledLanguages,
-	bundledThemes,
-	getHighlighter
-} from 'shikiji'
+import { type BundledLanguage, bundledThemes, getHighlighter } from 'shikiji'
 
 import { normalizeShikijiLanguage } from '@/lib/utils'
 
@@ -15,8 +10,19 @@ interface UseSyntaxHighlightingProps {
 }
 
 const highlighterPromise = getHighlighter({
-	themes: Object.keys(bundledThemes),
-	langs: Object.keys(bundledLanguages)
+	themes: ['tokyo-night', 'vitesse-light'],
+	langs: [
+		'javascript',
+		'typescript',
+		'jsx',
+		'tsx',
+		'json',
+		'bash',
+		'css',
+		'html',
+		'markdown',
+		'python'
+	]
 })
 
 export const useSyntaxHighlighting = ({
@@ -41,6 +47,7 @@ export const useSyntaxHighlighting = ({
 					.includes(normalizedLanguage as BundledLanguage)
 
 				let langToUse = normalizedLanguage
+
 				if (!isLanguageLoaded) {
 					try {
 						await highlighter.loadLanguage(
